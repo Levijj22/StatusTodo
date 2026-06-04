@@ -6,7 +6,13 @@ import AppKit
 class TodoStore: ObservableObject {
     @Published var items: [TodoItem] = []
     @Published var categories: [TodoCategory] = []
-    @Published var selectedCategoryId: UUID? = nil
+    @Published var selectedCategoryId: UUID? = nil {
+        didSet {
+            if let id = selectedCategoryId {
+                UserDefaults.standard.set(id.uuidString, forKey: "selectedCategoryId")
+            }
+        }
+    }
     @Published var alwaysOnTop: Bool = false {
         didSet { UserDefaults.standard.set(alwaysOnTop, forKey: "alwaysOnTop") }
     }
@@ -38,7 +44,15 @@ class TodoStore: ObservableObject {
         backupNow()          // backup on every launch
 
         if categories.isEmpty { setupDefaults() }
-        if selectedCategoryId == nil { selectedCategoryId = categories.first?.id }
+
+        // Restore last active tab, fall back to first category
+        if let saved = UserDefaults.standard.string(forKey: "selectedCategoryId"),
+           let uuid = UUID(uuidString: saved),
+           categories.contains(where: { $0.id == uuid }) {
+            selectedCategoryId = uuid
+        } else {
+            selectedCategoryId = sortedCategories.first?.id
+        }
 
         scheduleAutoClear()
         startAutosave()
