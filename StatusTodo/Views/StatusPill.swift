@@ -16,8 +16,12 @@ struct StatusPill: View {
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
                 } else if item.status == .inProgress {
-                    Image(systemName: "play.fill")
+                    Image(systemName: "pause.fill")
                         .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                } else if item.status == .onHold {
+                    Image(systemName: "hand.raised.fill")
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.white)
                 }
             }
