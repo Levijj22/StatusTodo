@@ -15,10 +15,6 @@ struct StatusPill: View {
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
-                } else if item.status == .waiting {
-                    Image(systemName: "clock")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white)
                 } else if item.status == .inProgress {
                     Image(systemName: "play.fill")
                         .font(.system(size: 8, weight: .bold))
@@ -64,6 +60,7 @@ private struct StatusPickerMenu: View {
                     .padding(.vertical, 7)
                     .background(item.status == status ? Color.white.opacity(0.08) : Color.clear)
                     .cornerRadius(5)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }

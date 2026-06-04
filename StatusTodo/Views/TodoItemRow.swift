@@ -28,7 +28,7 @@ struct TodoItemRow: View {
                         .foregroundColor(isDone ? Color.gray.opacity(0.6) : .white)
                         .strikethrough(isDone, color: .gray.opacity(0.6))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .onTapGesture(count: 2) { beginEdit() }
+                        .onTapGesture { beginEdit() }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

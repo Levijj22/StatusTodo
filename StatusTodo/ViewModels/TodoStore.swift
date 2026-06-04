@@ -58,10 +58,10 @@ class TodoStore: ObservableObject {
 
     func addItem(title: String) {
         guard let catId = selectedCategoryId, !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let maxOrder = items.filter { $0.categoryId == catId }.map(\.sortOrder).max() ?? -1
+        let minOrder = items.filter { $0.categoryId == catId }.map(\.sortOrder).min() ?? 0
         items.append(TodoItem(title: title.trimmingCharacters(in: .whitespaces),
                               categoryId: catId,
-                              sortOrder: maxOrder + 1))
+                              sortOrder: minOrder - 1))
         save()
     }
 
