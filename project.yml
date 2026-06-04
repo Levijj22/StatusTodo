@@ -1,0 +1,29 @@
+name: StatusTodo
+options:
+  bundleIdPrefix: com.levijackson
+  deploymentTarget:
+    macOS: "14.0"
+  minimumXcodeVersion: "15.0"
+  xcodeVersion: "16.0"
+
+targets:
+  StatusTodo:
+    type: application
+    platform: macOS
+    sources:
+      - StatusTodo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.levijackson.statustodo
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSHumanReadableDescription: "StatusTodo Task Manager"
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
+        INFOPLIST_KEY_NSPrincipalClass: NSApplication
+        INFOPLIST_KEY_NSHighResolutionCapable: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

@@ -1,0 +1,22 @@
+# Xcode build artifacts
+DerivedData/
+build/
+*.xcuserstate
+*.xcbkptlist
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+
+# Xcode user-specific settings
+StatusTodo.xcodeproj/project.xcworkspace/xcuserdata/
+StatusTodo.xcodeproj/xcuserdata/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Generated icon script (optional — keep source, skip outputs if large)
+# Uncomment below to exclude generated PNGs and only keep the script:
+# StatusTodo/Assets.xcassets/AppIcon.appiconset/*.png
