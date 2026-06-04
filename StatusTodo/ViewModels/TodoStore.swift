@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import ServiceManagement
+import AppKit
 
 class TodoStore: ObservableObject {
     @Published var items: [TodoItem] = []
@@ -16,6 +17,8 @@ class TodoStore: ObservableObject {
     private let dataURL: URL
     private let backup = BackupManager()
     private var autoClearTimer: Timer?
+    private var autosaveTimer: Timer?
+    private var cancellables = Set<AnyCancellable>()
 
     struct AppData: Codable {
         var items: [TodoItem]
@@ -38,6 +41,7 @@ class TodoStore: ObservableObject {
         if selectedCategoryId == nil { selectedCategoryId = categories.first?.id }
 
         scheduleAutoClear()
+        startAutosave()
     }
 
     // MARK: - Computed
@@ -200,15 +204,47 @@ class TodoStore: ObservableObject {
     // MARK: - Persistence
 
     func save() {
-        guard let encoded = try? JSONEncoder().encode(AppData(items: items, categories: categories)) else { return }
-        try? encoded.write(to: dataURL, options: .atomic)
+        do {
+            let encoded = try JSONEncoder().encode(AppData(items: items, categories: categories))
+            try encoded.write(to: dataURL, options: .atomic)
+        } catch {
+            NSLog("StatusTodo: save failed — %@", error.localizedDescription)
+        }
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: dataURL),
-              let appData = try? JSONDecoder().decode(AppData.self, from: data) else { return }
-        items = appData.items
-        categories = appData.categories
+        guard let data = try? Data(contentsOf: dataURL) else { return }
+        do {
+            let appData = try JSONDecoder().decode(AppData.self, from: data)
+            items = appData.items
+            categories = appData.categories
+        } catch {
+            NSLog("StatusTodo: load failed — %@", error.localizedDescription)
+        }
+    }
+
+    // Layer 2: Combine observer — saves 0.5 s after any item/category change
+    private func startAutosave() {
+        Publishers.Merge(
+            $items.map { _ in () },
+            $categories.map { _ in () }
+        )
+        .dropFirst()
+        .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+        .sink { [weak self] in self?.save() }
+        .store(in: &cancellables)
+
+        // Layer 3: Save every 60 s regardless, and on app quit
+        autosaveTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.save()
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.save()
+        }
     }
 
     private func setupDefaults() {
