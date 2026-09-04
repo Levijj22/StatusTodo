@@ -23,7 +23,7 @@ struct ContentView: View {
                                 .frame(width: 7, height: 7)
                             Text("\(count)")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.white.opacity(0.65))
                         }
                     }
                 }
@@ -48,7 +48,7 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(Color(hex: "181818"))
+            .background(Color.white.opacity(0.05))
 
             Rectangle()
                 .fill(Color.gray.opacity(0.18))
@@ -60,7 +60,7 @@ struct ContentView: View {
             // ── Category tabs ──────────────────────────────────
             CategoryTabBar()
         }
-        .background(Color(hex: "1C1C1C"))
+        .background(VisualEffectBackground().ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 }

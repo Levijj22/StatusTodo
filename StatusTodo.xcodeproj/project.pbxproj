@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0EB125EDF60852726513EF4F /* VisualEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C068D2C0316A446B66863A /* VisualEffect.swift */; };
 		42231A433FCC667FD3FFF699 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2068ADF89A1069904660FCA8 /* Color+Hex.swift */; };
 		5F86CFC04DFA4EEDE787A71B /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E92CD00271EF4FE0671AF7 /* Secrets.swift */; };
 		8321BB4D4143AFBF2D7D741D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40B62719E71FA80179FD807 /* SettingsView.swift */; };
@@ -35,6 +36,7 @@
 		A574FC24081505C1D1A3CFD1 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
 		B40B62719E71FA80179FD807 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C29B67C174B901CEAF008141 /* TodoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoStore.swift; sourceTree = "<group>"; };
+		D0C068D2C0316A446B66863A /* VisualEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffect.swift; sourceTree = "<group>"; };
 		D21107C65B13F7FB2D209754 /* StatusTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StatusTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC236067A881B40FD854BB7B /* TodoItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemRow.swift; sourceTree = "<group>"; };
 		E7370B7625ED405EEA539CF5 /* TodoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListView.swift; sourceTree = "<group>"; };
@@ -48,6 +50,7 @@
 			isa = PBXGroup;
 			children = (
 				2068ADF89A1069904660FCA8 /* Color+Hex.swift */,
+				D0C068D2C0316A446B66863A /* VisualEffect.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -203,6 +206,7 @@
 				D47BDBFB1E165513252EC16C /* TodoListView.swift in Sources */,
 				A46764D571DDF5F4EAF3CED1 /* TodoStore.swift in Sources */,
 				E77A4146ED1E77C76733A097 /* TodoistAPI.swift in Sources */,
+				0EB125EDF60852726513EF4F /* VisualEffect.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -31,6 +31,16 @@ class TodoStore: ObservableObject {
     }
 
     private let backup = BackupManager()
+
+    /// Completed tasks are shown greyed until the user cleans up; this marks
+    /// the cut-off. Defaults to the start of today on first run.
+    private var doneSince: Date {
+        get {
+            (UserDefaults.standard.object(forKey: "doneSince") as? Date)
+                ?? Calendar.current.startOfDay(for: Date())
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "doneSince") }
+    }
     private var refreshTimer: Timer?
 
     struct AppData: Codable {
@@ -62,8 +72,13 @@ class TodoStore: ObservableObject {
         defer { isLoading = false }
         do {
             let (cats, its) = try await TodoistAPI.fetchAll()
+            // Completed tasks are a separate feed; a failure there must not
+            // blank the open list, so it degrades to showing none.
+            var done: [TodoItem] = []
+            do { done = try await TodoistAPI.fetchCompleted(since: doneSince) }
+            catch { NSLog("completed fetch failed: \(error)") }
             categories = cats
-            items = its
+            items = its + done
             syncError = nil
 
             if selectedCategoryId == nil || !cats.contains(where: { $0.id == selectedCategoryId }) {
@@ -103,8 +118,10 @@ class TodoStore: ObservableObject {
 
     var filteredItems: [TodoItem] {
         guard let catId = selectedCategoryId else { return [] }
-        return items.filter { $0.categoryId == catId }
-                    .sorted { $0.sortOrder < $1.sortOrder }
+        let inCat = items.filter { $0.categoryId == catId }
+        let active = inCat.filter { $0.status != .done }.sorted { $0.sortOrder < $1.sortOrder }
+        let done = inCat.filter { $0.status == .done }.sorted { $0.sortOrder < $1.sortOrder }
+        return active + done
     }
 
     var sortedCategories: [TodoCategory] {
@@ -120,12 +137,14 @@ class TodoStore: ObservableObject {
     func addItem(title: String) {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         guard let catId = selectedCategoryId, !trimmed.isEmpty else { return }
-        let minOrder = items.filter { $0.categoryId == catId }.map(\.sortOrder).min() ?? 0
+        // Bottom of the list, and above any completed items.
+        let maxOrder = items.filter { $0.categoryId == catId && $0.status != .done }
+                            .map(\.sortOrder).max() ?? 0
 
         // Optimistic insert with a placeholder id, swapped for the real one.
         let tempId = "pending-" + UUID().uuidString
         items.append(TodoItem(id: tempId, title: trimmed, status: .todo,
-                              categoryId: catId, sortOrder: minOrder - 1))
+                              categoryId: catId, sortOrder: maxOrder + 1))
         Task {
             do {
                 let realId = try await TodoistAPI.addTask(trimmed, projectId: catId)
@@ -180,9 +199,14 @@ class TodoStore: ObservableObject {
         push { try await TodoistAPI.setTitle(id, trimmed) }
     }
 
-    /// Done items are already gone from Todoist, so there is nothing to clear.
-    func clearDoneItems() {}
-    func clearAllDoneItems() {}
+    /// Hides completed tasks. They are already closed in Todoist - this just
+    /// moves the cut-off forward so they stop being listed.
+    func clearDoneItems() {
+        doneSince = Date()
+        items.removeAll { $0.status == .done }
+    }
+
+    func clearAllDoneItems() { clearDoneItems() }
 
     func deleteAllItems() {
         guard let catId = selectedCategoryId else { return }

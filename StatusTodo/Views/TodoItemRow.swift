@@ -25,8 +25,8 @@ struct TodoItemRow: View {
                 } else {
                     Text(item.title)
                         .font(.system(size: 14))
-                        .foregroundColor(isDone ? Color.gray.opacity(0.6) : .white)
-                        .strikethrough(isDone, color: .gray.opacity(0.6))
+                        .foregroundColor(isDone ? Color.white.opacity(0.45) : .white)
+                        .strikethrough(isDone, color: .white.opacity(0.5))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .onTapGesture { beginEdit() }
                 }

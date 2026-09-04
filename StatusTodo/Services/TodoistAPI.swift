@@ -55,6 +55,11 @@ enum TodoistAPI {
         return data
     }
 
+    /// The completed-tasks endpoint wraps its payload in `items`, not
+    /// `results` like every other collection. Decoding it as Paged silently
+    /// yields nothing.
+    private struct CompletedPage: Decodable { let items: [RawTask] }
+
     private struct Paged<T: Decodable>: Decodable {
         let results: [T]
         let nextCursor: String?
@@ -100,6 +105,23 @@ enum TodoistAPI {
                      sortOrder: $0.order ?? 0)
         }
         return (categories, items)
+    }
+
+    /// Tasks completed since `since`, so the UI can show them greyed at the
+    /// bottom until the user cleans up. Todoist omits completed tasks from the
+    /// normal /tasks feed, so they have to be asked for separately.
+    static func fetchCompleted(since: Date) async throws -> [TodoItem] {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        fmt.timeZone = TimeZone(secondsFromGMT: 0)
+        let until = Date().addingTimeInterval(3600)
+        let path = "tasks/completed/by_completion_date?since=\(fmt.string(from: since))&until=\(fmt.string(from: until))&limit=200"
+        let d = try await send("GET", path)
+        let raw = try JSONDecoder().decode(CompletedPage.self, from: d).items
+        return raw.map {
+            TodoItem(id: $0.id, title: $0.content, status: .done,
+                     categoryId: $0.projectId, sortOrder: $0.order ?? 0)
+        }
     }
 
     // MARK: - Task writes

@@ -19,7 +19,7 @@ struct CategoryTabBar: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
         }
-        .background(Color(hex: "181818"))
+        .background(Color.white.opacity(0.05))
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Color.gray.opacity(0.18))
@@ -39,14 +39,14 @@ private struct TabButton: View {
             HStack(spacing: 5) {
                 Text(label)
                     .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? .white : Color.gray.opacity(0.7))
+                    .foregroundColor(isSelected ? .white : Color.white.opacity(0.62))
                 if count > 0 {
                     Text("\(count)")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(isSelected ? .white.opacity(0.7) : .gray.opacity(0.5))
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .white.opacity(0.55))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
-                        .background(Color.white.opacity(isSelected ? 0.12 : 0.06))
+                        .background(Color.white.opacity(isSelected ? 0.16 : 0.10))
                         .cornerRadius(8)
                 }
             }

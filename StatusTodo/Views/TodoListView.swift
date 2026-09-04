@@ -26,7 +26,7 @@ struct TodoListView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
-            .background(Color(hex: "242424"))
+            .background(Color.white.opacity(0.06))
 
             Rectangle()
                 .fill(Color.gray.opacity(0.15))
@@ -48,7 +48,7 @@ struct TodoListView: View {
                         TodoItemRow(item: item)
                             .listRowBackground(
                                 Rectangle()
-                                    .fill(Color(hex: "1C1C1C"))
+                                    .fill(Color.clear)
                             )
                             .listRowInsets(EdgeInsets())
                             .listRowSeparator(.hidden)
@@ -58,7 +58,7 @@ struct TodoListView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .background(Color(hex: "1C1C1C"))
+                .background(Color.clear)
             }
         }
     }
