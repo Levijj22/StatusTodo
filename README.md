@@ -24,7 +24,7 @@ Todoist has no status field, so status is stored in the task's priority. Note th
 |---|---|
 | Todo | 1 |
 | On Hold | 2 |
-| In Progress | 3 |
+| In Progress | 3 (also reads 4/P1) |
 | Done | task is completed |
 
 Marking an item **Done** completes it in Todoist, so it leaves the list immediately — Todoist doesn't return completed tasks.

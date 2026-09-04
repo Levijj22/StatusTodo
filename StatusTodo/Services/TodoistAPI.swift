@@ -26,11 +26,14 @@ enum TodoistAPI {
         }
     }
 
+    /// P1 (API 4) set on the phone also reads as In Progress - nothing else
+    /// maps to it, and an urgent task is in progress by any reading.
+    /// Writing In Progress still uses 3, so a P1 stays P1 until restatused.
     static func status(fromPriority p: Int) -> TodoStatus {
         switch p {
-        case 3:  return .inProgress
-        case 2:  return .onHold
-        default: return .todo
+        case 4, 3: return .inProgress
+        case 2:    return .onHold
+        default:   return .todo
         }
     }
 
