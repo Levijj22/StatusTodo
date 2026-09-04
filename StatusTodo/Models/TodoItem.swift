@@ -20,11 +20,11 @@ enum TodoStatus: String, Codable, CaseIterable, Identifiable {
     var label: String { rawValue }
 }
 
+/// Ids are Todoist task ids now, not local UUIDs - Todoist is the store.
 struct TodoItem: Identifiable, Codable, Equatable {
-    var id: UUID        = UUID()
+    var id: String
     var title: String
-    var status: TodoStatus  = .todo
-    var categoryId: UUID
-    var sortOrder: Int      = 0
-    var createdAt: Date     = Date()
+    var status: TodoStatus = .todo
+    var categoryId: String
+    var sortOrder: Int = 0
 }

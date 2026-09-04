@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var store: TodoStore
     @State private var newCategoryName = ""
-    @State private var editingId: UUID? = nil
+    @State private var editingId: String? = nil
     @State private var editingName = ""
     @State private var showDeleteAllConfirm = false
     @State private var showClearDoneConfirm = false
@@ -213,7 +213,7 @@ struct SettingsView: View {
         newCategoryName = ""
     }
 
-    private func commitRename(_ id: UUID) {
+    private func commitRename(_ id: String) {
         store.renameCategory(id, to: editingName)
         editingId = nil
     }

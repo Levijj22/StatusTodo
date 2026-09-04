@@ -3,13 +3,23 @@ import Combine
 import ServiceManagement
 import AppKit
 
+/// StatusTodo is now a client for Todoist rather than a local store.
+///
+/// Nothing lives on this Mac any more: Ava (on the VPS) and the phone talk to
+/// the same account, so the laptop being asleep or off changes nothing. Local
+/// edits are applied optimistically and pushed; a failed push triggers a
+/// refresh so the UI can never drift from the server.
+@MainActor
 class TodoStore: ObservableObject {
     @Published var items: [TodoItem] = []
     @Published var categories: [TodoCategory] = []
-    @Published var selectedCategoryId: UUID? = nil {
+    @Published var isLoading = false
+    @Published var syncError: String?
+
+    @Published var selectedCategoryId: String? = nil {
         didSet {
             if let id = selectedCategoryId {
-                UserDefaults.standard.set(id.uuidString, forKey: "selectedCategoryId")
+                UserDefaults.standard.set(id, forKey: "selectedCategoryId")
             }
         }
     }
@@ -20,11 +30,8 @@ class TodoStore: ObservableObject {
         didSet { applyLaunchAtLogin(launchAtLogin) }
     }
 
-    private let dataURL: URL
     private let backup = BackupManager()
-    private var autoClearTimer: Timer?
-    private var autosaveTimer: Timer?
-    private var cancellables = Set<AnyCancellable>()
+    private var refreshTimer: Timer?
 
     struct AppData: Codable {
         var items: [TodoItem]
@@ -32,66 +39,117 @@ class TodoStore: ObservableObject {
     }
 
     init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("StatusTodo", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        dataURL = dir.appendingPathComponent("data.json")
-
         alwaysOnTop = UserDefaults.standard.bool(forKey: "alwaysOnTop")
         launchAtLogin = SMAppService.mainApp.status == .enabled
 
-        load()
-        backupNow()          // backup on every launch
+        Task { await refresh() }
+        startPolling()
 
-        if categories.isEmpty { setupDefaults() }
-
-        // Restore last active tab, fall back to first category
-        if let saved = UserDefaults.standard.string(forKey: "selectedCategoryId"),
-           let uuid = UUID(uuidString: saved),
-           categories.contains(where: { $0.id == uuid }) {
-            selectedCategoryId = uuid
-        } else {
-            selectedCategoryId = sortedCategories.first?.id
+        // Re-sync when the window comes back to the front, so changes made on
+        // the phone or by Ava show up immediately rather than on the next tick.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in await self?.refresh() }
         }
+    }
 
-        scheduleAutoClear()
-        startAutosave()
+    // MARK: - Sync
+
+    func refresh() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let (cats, its) = try await TodoistAPI.fetchAll()
+            categories = cats
+            items = its
+            syncError = nil
+
+            if selectedCategoryId == nil || !cats.contains(where: { $0.id == selectedCategoryId }) {
+                let saved = UserDefaults.standard.string(forKey: "selectedCategoryId")
+                // Prefer the saved tab; otherwise the first real project -
+                // Inbox is Todoist's catch-all and not what he works from.
+                selectedCategoryId = cats.first(where: { $0.id == saved })?.id
+                    ?? sortedCategories.first(where: { $0.name != "Inbox" })?.id
+                    ?? sortedCategories.first?.id
+            }
+        } catch {
+            syncError = error.localizedDescription
+        }
+    }
+
+    /// Runs an API call, and on failure resyncs so the UI matches the server.
+    private func push(_ work: @escaping () async throws -> Void) {
+        Task {
+            do {
+                try await work()
+                syncError = nil
+            } catch {
+                syncError = error.localizedDescription
+                await refresh()
+            }
+        }
+    }
+
+    private func startPolling() {
+        refreshTimer?.invalidate()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.refresh() }
+        }
     }
 
     // MARK: - Computed
 
     var filteredItems: [TodoItem] {
         guard let catId = selectedCategoryId else { return [] }
-        let cat = items.filter { $0.categoryId == catId }
-        let active = cat.filter { $0.status != .done }.sorted { $0.sortOrder < $1.sortOrder }
-        let done   = cat.filter { $0.status == .done  }.sorted { $0.sortOrder < $1.sortOrder }
-        return active + done
+        return items.filter { $0.categoryId == catId }
+                    .sorted { $0.sortOrder < $1.sortOrder }
     }
 
     var sortedCategories: [TodoCategory] {
         categories.sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    var selectedCategoryName: String {
+        categories.first(where: { $0.id == selectedCategoryId })?.name ?? ""
+    }
+
     // MARK: - Item operations
 
     func addItem(title: String) {
-        guard let catId = selectedCategoryId, !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let trimmed = title.trimmingCharacters(in: .whitespaces)
+        guard let catId = selectedCategoryId, !trimmed.isEmpty else { return }
         let minOrder = items.filter { $0.categoryId == catId }.map(\.sortOrder).min() ?? 0
-        items.append(TodoItem(title: title.trimmingCharacters(in: .whitespaces),
-                              categoryId: catId,
-                              sortOrder: minOrder - 1))
-        save()
+
+        // Optimistic insert with a placeholder id, swapped for the real one.
+        let tempId = "pending-" + UUID().uuidString
+        items.append(TodoItem(id: tempId, title: trimmed, status: .todo,
+                              categoryId: catId, sortOrder: minOrder - 1))
+        Task {
+            do {
+                let realId = try await TodoistAPI.addTask(trimmed, projectId: catId)
+                if let i = items.firstIndex(where: { $0.id == tempId }) {
+                    if realId.isEmpty { await refresh() } else { items[i].id = realId }
+                }
+                syncError = nil
+            } catch {
+                items.removeAll { $0.id == tempId }
+                syncError = error.localizedDescription
+            }
+        }
     }
 
     func deleteItems(at offsets: IndexSet) {
         let filtered = filteredItems
         let ids = offsets.map { filtered[$0].id }
         items.removeAll { ids.contains($0.id) }
-        save()
+        push { for id in ids { try await TodoistAPI.deleteTask(id) } }
     }
 
+    /// Local-only. Todoist ordering is not writable through this API, so a
+    /// manual reorder lasts until the next refresh.
     func moveItems(from source: IndexSet, to destination: Int) {
-        guard let catId = selectedCategoryId else { return }
         var filtered = filteredItems
         filtered.move(fromOffsets: source, toOffset: destination)
         for (index, item) in filtered.enumerated() {
@@ -100,171 +158,96 @@ class TodoStore: ObservableObject {
             }
         }
         objectWillChange.send()
-        save()
     }
 
+    /// Marking Done completes the task in Todoist, which removes it from the
+    /// list - Todoist does not return completed tasks.
     func updateStatus(_ item: TodoItem, to status: TodoStatus) {
-        guard let i = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[i].status = status
-        save()
+        let id = item.id
+        if status == .done {
+            items.removeAll { $0.id == id }
+        } else if let i = items.firstIndex(where: { $0.id == id }) {
+            items[i].status = status
+        }
+        push { try await TodoistAPI.setStatus(id, status) }
     }
 
     func updateTitle(_ item: TodoItem, to title: String) {
-        guard !title.trimmingCharacters(in: .whitespaces).isEmpty,
-              let i = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[i].title = title.trimmingCharacters(in: .whitespaces)
-        save()
+        let trimmed = title.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, let i = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let id = item.id
+        items[i].title = trimmed
+        push { try await TodoistAPI.setTitle(id, trimmed) }
     }
 
-    func clearDoneItems() {
-        guard let catId = selectedCategoryId else { return }
-        items.removeAll { $0.categoryId == catId && $0.status == .done }
-        save()
-    }
-
-    func clearAllDoneItems() {
-        items.removeAll { $0.status == .done }
-        save()
-    }
+    /// Done items are already gone from Todoist, so there is nothing to clear.
+    func clearDoneItems() {}
+    func clearAllDoneItems() {}
 
     func deleteAllItems() {
         guard let catId = selectedCategoryId else { return }
+        let ids = items.filter { $0.categoryId == catId }.map(\.id)
         items.removeAll { $0.categoryId == catId }
-        save()
+        push { for id in ids { try await TodoistAPI.deleteTask(id) } }
     }
 
     // MARK: - Category operations
 
     func addCategory(name: String) {
-        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        categories.append(TodoCategory(name: name.trimmingCharacters(in: .whitespaces),
-                                       sortOrder: categories.count))
-        save()
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        push {
+            _ = try await TodoistAPI.addProject(trimmed)
+            await self.refresh()
+        }
     }
 
-    func deleteCategory(_ id: UUID) {
+    func deleteCategory(_ id: String) {
         categories.removeAll { $0.id == id }
         items.removeAll { $0.categoryId == id }
-        if selectedCategoryId == id { selectedCategoryId = categories.first?.id }
-        save()
+        if selectedCategoryId == id { selectedCategoryId = sortedCategories.first?.id }
+        push { try await TodoistAPI.deleteProject(id) }
     }
 
-    func renameCategory(_ id: UUID, to name: String) {
-        guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
-              let i = categories.firstIndex(where: { $0.id == id }) else { return }
-        categories[i].name = name.trimmingCharacters(in: .whitespaces)
-        save()
+    func renameCategory(_ id: String, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, let i = categories.firstIndex(where: { $0.id == id }) else { return }
+        categories[i].name = trimmed
+        push { try await TodoistAPI.renameProject(id, to: trimmed) }
     }
 
+    /// Local-only; Todoist project order is not written back.
     func moveCategories(from source: IndexSet, to destination: Int) {
         categories.move(fromOffsets: source, toOffset: destination)
         for i in categories.indices { categories[i].sortOrder = i }
-        save()
     }
 
     // MARK: - Backup
 
+    /// Manual only, and off the main thread: the backup folder lives under
+    /// ~/Documents, which is OneDrive-synced, so touching it can block on
+    /// network I/O. Todoist is the real backup now.
     func backupNow() {
         guard let data = try? JSONEncoder().encode(AppData(items: items, categories: categories)) else { return }
-        backup.backup(data: data)
+        let b = backup
+        Task.detached(priority: .background) { b.backup(data: data) }
     }
 
     func openBackupFolder() { backup.openFolder() }
     var backupCount: Int { backup.backupCount }
     var latestBackupDate: Date? { backup.latestBackupDate }
 
-    // MARK: - Auto-clear every Sunday night
-
-    private func scheduleAutoClear() {
-        autoClearTimer?.invalidate()
-        // Check every 30 minutes
-        autoClearTimer = Timer.scheduledTimer(withTimeInterval: 1800, repeats: true) { [weak self] _ in
-            self?.checkSundayClear()
-        }
-        checkSundayClear()
-    }
-
-    private func checkSundayClear() {
-        let cal = Calendar.current
-        let now = Date()
-        let weekday = cal.component(.weekday, from: now) // 1 = Sunday
-        let hour = cal.component(.hour, from: now)
-
-        guard weekday == 1 && hour >= 21 else { return }
-
-        let key = "lastAutoClearDate"
-        if let last = UserDefaults.standard.object(forKey: key) as? Date,
-           cal.isDate(last, inSameDayAs: now) { return }
-
-        backupNow()         // safety backup before wiping
-        clearAllDoneItems()
-        UserDefaults.standard.set(now, forKey: key)
-    }
-
     // MARK: - Launch at login
 
     private func applyLaunchAtLogin(_ enable: Bool) {
         do {
             if enable {
-                try SMAppService.mainApp.register()
+                if SMAppService.mainApp.status != .enabled { try SMAppService.mainApp.register() }
             } else {
-                try SMAppService.mainApp.unregister()
+                if SMAppService.mainApp.status == .enabled { try SMAppService.mainApp.unregister() }
             }
         } catch {
-            print("Launch at login error: \(error)")
+            NSLog("launch at login failed: \(error)")
         }
-    }
-
-    // MARK: - Persistence
-
-    func save() {
-        do {
-            let encoded = try JSONEncoder().encode(AppData(items: items, categories: categories))
-            try encoded.write(to: dataURL, options: .atomic)
-        } catch {
-            NSLog("StatusTodo: save failed — %@", error.localizedDescription)
-        }
-    }
-
-    private func load() {
-        guard let data = try? Data(contentsOf: dataURL) else { return }
-        do {
-            let appData = try JSONDecoder().decode(AppData.self, from: data)
-            items = appData.items
-            categories = appData.categories
-        } catch {
-            NSLog("StatusTodo: load failed — %@", error.localizedDescription)
-        }
-    }
-
-    // Layer 2: Combine observer — saves 0.5 s after any item/category change
-    private func startAutosave() {
-        Publishers.Merge(
-            $items.map { _ in () },
-            $categories.map { _ in () }
-        )
-        .dropFirst()
-        .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-        .sink { [weak self] in self?.save() }
-        .store(in: &cancellables)
-
-        // Layer 3: Save every 60 s regardless, and on app quit
-        autosaveTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.save()
-        }
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.willTerminateNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.save()
-        }
-    }
-
-    private func setupDefaults() {
-        let names = ["Work", "Life", "Personal"]
-        categories = names.enumerated().map { TodoCategory(name: $1, sortOrder: $0) }
-        selectedCategoryId = categories.first?.id
-        save()
     }
 }

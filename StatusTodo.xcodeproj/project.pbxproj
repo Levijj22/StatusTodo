@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		42231A433FCC667FD3FFF699 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2068ADF89A1069904660FCA8 /* Color+Hex.swift */; };
+		5F86CFC04DFA4EEDE787A71B /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E92CD00271EF4FE0671AF7 /* Secrets.swift */; };
 		8321BB4D4143AFBF2D7D741D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40B62719E71FA80179FD807 /* SettingsView.swift */; };
 		8886930448DDB41D54E8B53F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE6B665DAAAFF58950FAC9F /* ContentView.swift */; };
 		8CCBCA82497057EFC7AC8649 /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B8B8B7253A75FAFE35EE69 /* StatusPill.swift */; };
@@ -16,6 +17,7 @@
 		C52AB586C37AF001B17B8854 /* TodoItemRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC236067A881B40FD854BB7B /* TodoItemRow.swift */; };
 		C94A83B289E705274C92CF52 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 71AB76A2EA88AAA2343325C9 /* Assets.xcassets */; };
 		D47BDBFB1E165513252EC16C /* TodoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7370B7625ED405EEA539CF5 /* TodoListView.swift */; };
+		E77A4146ED1E77C76733A097 /* TodoistAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 092FA9D8E24E36A8D7B1157B /* TodoistAPI.swift */; };
 		EC79E37BDE8864472CFCB4ED /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A574FC24081505C1D1A3CFD1 /* BackupManager.swift */; };
 		F7CE7CCB6582A7323BC801AD /* TodoCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A353B939E6C976A63F882D /* TodoCategory.swift */; };
 		FC9A4AE3ED8F91E528C07795 /* StatusTodoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2761A3610928D899DAA5CA /* StatusTodoApp.swift */; };
@@ -23,7 +25,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		092FA9D8E24E36A8D7B1157B /* TodoistAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoistAPI.swift; sourceTree = "<group>"; };
 		2068ADF89A1069904660FCA8 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		30E92CD00271EF4FE0671AF7 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		3A2761A3610928D899DAA5CA /* StatusTodoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusTodoApp.swift; sourceTree = "<group>"; };
 		68A353B939E6C976A63F882D /* TodoCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCategory.swift; sourceTree = "<group>"; };
 		71AB76A2EA88AAA2343325C9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -60,6 +64,15 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		9FD4AA3193928FDCD096017C /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				30E92CD00271EF4FE0671AF7 /* Secrets.swift */,
+				092FA9D8E24E36A8D7B1157B /* TodoistAPI.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		AE6E0D8E5DED16EB1E459B14 /* StatusTodo */ = {
 			isa = PBXGroup;
 			children = (
@@ -68,6 +81,7 @@
 				3A2761A3610928D899DAA5CA /* StatusTodoApp.swift */,
 				0930318B11628C63A05DC883 /* Extensions */,
 				DA95961CBBC1C6CB5ECCADB8 /* Models */,
+				9FD4AA3193928FDCD096017C /* Services */,
 				E6E6312868D345ED49E2F10C /* ViewModels */,
 				0BF1CBCB7D5229A133931762 /* Views */,
 			);
@@ -179,6 +193,7 @@
 				FF51EAE76658B6212B10D003 /* CategoryTabBar.swift in Sources */,
 				42231A433FCC667FD3FFF699 /* Color+Hex.swift in Sources */,
 				8886930448DDB41D54E8B53F /* ContentView.swift in Sources */,
+				5F86CFC04DFA4EEDE787A71B /* Secrets.swift in Sources */,
 				8321BB4D4143AFBF2D7D741D /* SettingsView.swift in Sources */,
 				8CCBCA82497057EFC7AC8649 /* StatusPill.swift in Sources */,
 				FC9A4AE3ED8F91E528C07795 /* StatusTodoApp.swift in Sources */,
@@ -187,6 +202,7 @@
 				C52AB586C37AF001B17B8854 /* TodoItemRow.swift in Sources */,
 				D47BDBFB1E165513252EC16C /* TodoListView.swift in Sources */,
 				A46764D571DDF5F4EAF3CED1 /* TodoStore.swift in Sources */,
+				E77A4146ED1E77C76733A097 /* TodoistAPI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
