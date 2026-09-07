@@ -25,6 +25,15 @@ class TodoStore: ObservableObject {
 
     private let backup = BackupManager()
 
+    /// Tasks that have left the open list but haven't surfaced in the
+    /// completed feed yet. Todoist indexes a completion a moment after it
+    /// removes the task, so a refresh landing in that window would otherwise
+    /// show the task in neither feed and it would vanish for a cycle. Held as
+    /// Done until a feed claims it, or the grace period lapses (which also
+    /// covers a task genuinely deleted elsewhere).
+    private var pendingDone: [String: (item: TodoItem, since: Date)] = [:]
+    private let pendingDoneGrace: TimeInterval = 300
+
     /// Completed tasks are shown greyed until the user cleans up; this marks
     /// the cut-off. Defaults to the start of today on first run.
     private var doneSince: Date {
@@ -72,8 +81,29 @@ class TodoStore: ObservableObject {
             var done: [TodoItem] = []
             do { done = try await TodoistAPI.fetchCompleted(since: doneSince) }
             catch { NSLog("completed fetch failed: \(error)") }
+            let openIds = Set(its.map(\.id))
+            let doneIds = Set(done.map(\.id))
+
+            // Anything previously open that neither feed claims: hold it.
+            for prev in items where prev.status != .done
+                && !openIds.contains(prev.id)
+                && !doneIds.contains(prev.id)
+                && !prev.id.hasPrefix("pending-") {
+                if pendingDone[prev.id] == nil {
+                    var held = prev
+                    held.status = .done
+                    pendingDone[prev.id] = (held, Date())
+                }
+            }
+            // Release once a feed claims it, or the grace lapses.
+            let now = Date()
+            pendingDone = pendingDone.filter { id, entry in
+                !openIds.contains(id) && !doneIds.contains(id)
+                    && now.timeIntervalSince(entry.since) < pendingDoneGrace
+            }
+
             categories = cats
-            items = its + done
+            items = its + done + pendingDone.values.map(\.item)
             syncError = nil
 
         } catch {
