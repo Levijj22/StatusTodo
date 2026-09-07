@@ -115,6 +115,10 @@ enum TodoistAPI {
     /// normal /tasks feed, so they have to be asked for separately.
     static func fetchCompleted(since: Date) async throws -> [TodoItem] {
         let fmt = DateFormatter()
+        // en_US_POSIX, or a 12-hour or non-Gregorian device locale silently
+        // produces a string Todoist rejects.
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.calendar = Calendar(identifier: .gregorian)
         fmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let until = Date().addingTimeInterval(3600)
