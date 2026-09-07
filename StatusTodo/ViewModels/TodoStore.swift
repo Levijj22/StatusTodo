@@ -30,7 +30,9 @@ class TodoStore: ObservableObject {
     private var doneSince: Date {
         get {
             (UserDefaults.standard.object(forKey: "doneSince") as? Date)
-                ?? Calendar.current.startOfDay(for: Date())
+                // A week, not today: completing something at 11pm should not
+                // disappear an hour later at midnight.
+                ?? Date().addingTimeInterval(-7 * 24 * 3600)
         }
         set { UserDefaults.standard.set(newValue, forKey: "doneSince") }
     }
@@ -141,7 +143,15 @@ class TodoStore: ObservableObject {
             do {
                 let realId = try await TodoistAPI.addTask(trimmed, projectId: catId)
                 if let i = items.firstIndex(where: { $0.id == tempId }) {
-                    if realId.isEmpty { await refresh() } else { items[i].id = realId }
+                    if realId.isEmpty {
+                        await refresh()
+                    } else {
+                        items[i].id = realId
+                        // Todoist appends new tasks, so without this the item
+                        // jumps to the bottom on the next refresh.
+                        let ordered = items(in: catId).filter { $0.status != .done }.map(\.id)
+                        try? await TodoistAPI.reorder(ordered)
+                    }
                 }
                 syncError = nil
             } catch {
@@ -178,9 +188,10 @@ class TodoStore: ObservableObject {
     /// list - Todoist does not return completed tasks.
     func updateStatus(_ item: TodoItem, to status: TodoStatus) {
         let id = item.id
-        if status == .done {
-            items.removeAll { $0.id == id }
-        } else if let i = items.firstIndex(where: { $0.id == id }) {
+        // Keep Done items in place - greyed, struck through and sorted to the
+        // bottom. They come back from the completed feed on the next refresh
+        // too, so removing them here just made them flicker out.
+        if let i = items.firstIndex(where: { $0.id == id }) {
             items[i].status = status
         }
         push { try await TodoistAPI.setStatus(id, status) }
