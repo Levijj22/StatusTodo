@@ -97,12 +97,15 @@ enum TodoistAPI {
         let categories = projects.enumerated().map {
             TodoCategory(id: $1.id, name: $1.name, sortOrder: $0)
         }
+        // Ordering has to come from the Sync API; a failure there just means
+        // an unordered list, not a broken one.
+        let order = (try? await fetchOrder()) ?? [:]
         let items = raw.map {
             TodoItem(id: $0.id,
                      title: $0.content,
                      status: status(fromPriority: $0.priority),
                      categoryId: $0.projectId,
-                     sortOrder: $0.order ?? 0)
+                     sortOrder: order[$0.id] ?? 0)
         }
         return (categories, items)
     }
@@ -122,6 +125,48 @@ enum TodoistAPI {
             TodoItem(id: $0.id, title: $0.content, status: .done,
                      categoryId: $0.projectId, sortOrder: $0.order ?? 0)
         }
+    }
+
+    // MARK: - Ordering
+    //
+    // REST v1 does not return or accept task order at all - `order` comes back
+    // null. Ordering lives in the Sync API as `child_order`, which is both
+    // readable and writable, so a drag here shows up on the phone.
+
+    private struct SyncItem: Decodable { let id: String; let childOrder: Int?
+        enum CodingKeys: String, CodingKey { case id; case childOrder = "child_order" } }
+    private struct SyncRead: Decodable { let items: [SyncItem] }
+
+    private static func sync(_ payload: [String: Any]) async throws -> Data {
+        var req = URLRequest(url: URL(string: base + "/sync")!)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 20
+        req.setValue("Bearer \(Secrets.todoistToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let (data, response) = try await URLSession.shared.data(for: req)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+        }
+        return data
+    }
+
+    /// task id -> child_order
+    static func fetchOrder() async throws -> [String: Int] {
+        let d = try await sync(["sync_token": "*", "resource_types": ["items"]])
+        let read = try JSONDecoder().decode(SyncRead.self, from: d)
+        return Dictionary(uniqueKeysWithValues: read.items.map { ($0.id, $0.childOrder ?? 0) })
+    }
+
+    /// Writes `ids` as consecutive positions, so the list reads top to bottom.
+    static func reorder(_ ids: [String]) async throws {
+        guard !ids.isEmpty else { return }
+        let payload: [String: Any] = ["commands": [[
+            "type": "item_reorder",
+            "uuid": UUID().uuidString,
+            "args": ["items": ids.enumerated().map { ["id": $1, "child_order": $0 + 1] }],
+        ]]]
+        _ = try await sync(payload)
     }
 
     // MARK: - Task writes

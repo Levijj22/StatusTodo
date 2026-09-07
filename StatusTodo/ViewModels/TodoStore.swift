@@ -158,8 +158,8 @@ class TodoStore: ObservableObject {
         push { for id in ids { try await TodoistAPI.deleteTask(id) } }
     }
 
-    /// Local-only. Todoist ordering is not writable through this API, so a
-    /// manual reorder lasts until the next refresh.
+    /// Persisted to Todoist via the Sync API, so a drag here also reorders
+    /// the list on the phone.
     func moveItems(from source: IndexSet, to destination: Int, in categoryId: String?) {
         var filtered = items(in: categoryId)
         filtered.move(fromOffsets: source, toOffset: destination)
@@ -169,6 +169,9 @@ class TodoStore: ObservableObject {
             }
         }
         objectWillChange.send()
+
+        let ordered = filtered.filter { $0.status != .done }.map(\.id)
+        push { try await TodoistAPI.reorder(ordered) }
     }
 
     /// Marking Done completes the task in Todoist, which removes it from the

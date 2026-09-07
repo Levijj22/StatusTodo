@@ -82,5 +82,5 @@ Backups run only when you ask, and never on the main thread — that folder is o
 
 ## Known limitations
 
-- **Manual reordering is local only.** Todoist's task ordering isn't writable through the REST API, so a drag-reorder resets on the next refresh.
+- Task ordering uses the Sync API (`item_reorder` / `child_order`); REST v1 neither returns nor accepts task order.
 - **The weekly Sunday auto-clear is gone.** Completing an item removes it immediately, so there's nothing left to sweep up.
