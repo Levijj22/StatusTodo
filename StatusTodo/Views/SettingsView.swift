@@ -5,7 +5,6 @@ struct SettingsView: View {
     @State private var newCategoryName = ""
     @State private var editingId: String? = nil
     @State private var editingName = ""
-    @State private var showDeleteAllConfirm = false
     @State private var showClearDoneConfirm = false
     @State private var backupFlash = false
 
@@ -187,16 +186,9 @@ struct SettingsView: View {
 
                     Divider()
 
-                    Button("Delete ALL items in current tab") {
-                        showDeleteAllConfirm = true
-                    }
-                    .foregroundColor(Color(hex: "E2445C"))
-                    .alert("Delete all items?", isPresented: $showDeleteAllConfirm) {
-                        Button("Delete", role: .destructive) { store.deleteAllItems() }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("Permanently deletes every item in the current tab.")
-                    }
+                    // "Delete ALL items in current tab" was removed when the
+                    // selected tab moved into each window: Settings is its own
+                    // scene and can no longer tell which window is meant.
                 }
                 .padding(8)
             }

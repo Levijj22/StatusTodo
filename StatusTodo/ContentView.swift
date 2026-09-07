@@ -3,9 +3,15 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var store: TodoStore
 
+    /// Per-window, so one window can sit on Work and another on Life.
+    /// SceneStorage keeps each window's choice across relaunches.
+    @SceneStorage("selectedCategoryId") private var selectedCategoryId: String = ""
+
+    private var categoryId: String? { selectedCategoryId.isEmpty ? nil : selectedCategoryId }
+
     private var statusSummary: [(TodoStatus, Int)] {
         TodoStatus.allCases.compactMap { status in
-            let count = store.filteredItems.filter { $0.status == status }.count
+            let count = store.items(in: categoryId).filter { $0.status == status }.count
             return count > 0 ? (status, count) : nil
         }
     }
@@ -55,13 +61,20 @@ struct ContentView: View {
                 .frame(height: 1)
 
             // ── Main list ──────────────────────────────────────
-            TodoListView()
+            TodoListView(categoryId: categoryId)
 
             // ── Category tabs ──────────────────────────────────
-            CategoryTabBar()
+            CategoryTabBar(selectedCategoryId: $selectedCategoryId)
         }
         .background(VisualEffectBackground().ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .navigationTitle(store.categoryName(categoryId))
+        .onChange(of: store.categories) { _, cats in
+            // New window, or the chosen project disappeared.
+            if categoryId == nil || !cats.contains(where: { $0.id == categoryId }) {
+                selectedCategoryId = store.defaultCategoryId ?? ""
+            }
+        }
     }
 }
 

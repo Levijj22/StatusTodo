@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TodoListView: View {
+    let categoryId: String?
     @EnvironmentObject var store: TodoStore
     @State private var newItemText = ""
     @FocusState private var inputFocused: Bool
@@ -19,7 +20,7 @@ struct TodoListView: View {
                     .focused($inputFocused)
                     .onSubmit {
                         guard !newItemText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                        store.addItem(title: newItemText)
+                        store.addItem(title: newItemText, in: categoryId)
                         newItemText = ""
                         inputFocused = true
                     }
@@ -32,7 +33,7 @@ struct TodoListView: View {
                 .fill(Color.gray.opacity(0.15))
                 .frame(height: 1)
 
-            if store.filteredItems.isEmpty {
+            if store.items(in: categoryId).isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 28))
@@ -44,7 +45,7 @@ struct TodoListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(store.filteredItems) { item in
+                    ForEach(store.items(in: categoryId)) { item in
                         TodoItemRow(item: item)
                             .listRowBackground(
                                 Rectangle()
@@ -53,8 +54,8 @@ struct TodoListView: View {
                             .listRowInsets(EdgeInsets())
                             .listRowSeparator(.hidden)
                     }
-                    .onMove(perform: store.moveItems)
-                    .onDelete(perform: store.deleteItems)
+                    .onMove { store.moveItems(from: $0, to: $1, in: categoryId) }
+                    .onDelete { store.deleteItems(at: $0, in: categoryId) }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)

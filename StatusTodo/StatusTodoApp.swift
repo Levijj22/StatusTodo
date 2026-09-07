@@ -26,9 +26,8 @@ struct StatusTodoApp: App {
                 }
         }
         .windowStyle(.hiddenTitleBar)
-        .commands {
-            CommandGroup(replacing: .newItem) {}
-        }
+        // New Window (Cmd+N) is deliberately left in place so one window can
+        // sit on Work and another on Life.
 
         Settings {
             SettingsView()

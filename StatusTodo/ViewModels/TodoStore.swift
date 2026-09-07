@@ -16,13 +16,6 @@ class TodoStore: ObservableObject {
     @Published var isLoading = false
     @Published var syncError: String?
 
-    @Published var selectedCategoryId: String? = nil {
-        didSet {
-            if let id = selectedCategoryId {
-                UserDefaults.standard.set(id, forKey: "selectedCategoryId")
-            }
-        }
-    }
     @Published var alwaysOnTop: Bool = false {
         didSet { UserDefaults.standard.set(alwaysOnTop, forKey: "alwaysOnTop") }
     }
@@ -81,14 +74,6 @@ class TodoStore: ObservableObject {
             items = its + done
             syncError = nil
 
-            if selectedCategoryId == nil || !cats.contains(where: { $0.id == selectedCategoryId }) {
-                let saved = UserDefaults.standard.string(forKey: "selectedCategoryId")
-                // Prefer the saved tab; otherwise the first real project -
-                // Inbox is Todoist's catch-all and not what he works from.
-                selectedCategoryId = cats.first(where: { $0.id == saved })?.id
-                    ?? sortedCategories.first(where: { $0.name != "Inbox" })?.id
-                    ?? sortedCategories.first?.id
-            }
         } catch {
             syncError = error.localizedDescription
         }
@@ -116,8 +101,10 @@ class TodoStore: ObservableObject {
 
     // MARK: - Computed
 
-    var filteredItems: [TodoItem] {
-        guard let catId = selectedCategoryId else { return [] }
+    /// Windows each pick their own category, so this is a function rather
+    /// than shared state on the store.
+    func items(in categoryId: String?) -> [TodoItem] {
+        guard let catId = categoryId else { return [] }
         let inCat = items.filter { $0.categoryId == catId }
         let active = inCat.filter { $0.status != .done }.sorted { $0.sortOrder < $1.sortOrder }
         let done = inCat.filter { $0.status == .done }.sorted { $0.sortOrder < $1.sortOrder }
@@ -128,23 +115,28 @@ class TodoStore: ObservableObject {
         categories.sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    var selectedCategoryName: String {
-        categories.first(where: { $0.id == selectedCategoryId })?.name ?? ""
+    func categoryName(_ id: String?) -> String {
+        categories.first(where: { $0.id == id })?.name ?? ""
+    }
+
+    /// The tab a freshly opened window should land on. Inbox is Todoist's
+    /// catch-all, not somewhere he works from.
+    var defaultCategoryId: String? {
+        sortedCategories.first(where: { $0.name != "Inbox" })?.id ?? sortedCategories.first?.id
     }
 
     // MARK: - Item operations
 
-    func addItem(title: String) {
+    func addItem(title: String, in categoryId: String?) {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
-        guard let catId = selectedCategoryId, !trimmed.isEmpty else { return }
-        // Bottom of the list, and above any completed items.
-        let maxOrder = items.filter { $0.categoryId == catId && $0.status != .done }
-                            .map(\.sortOrder).max() ?? 0
+        guard let catId = categoryId, !trimmed.isEmpty else { return }
+        // Top of the list.
+        let minOrder = items.filter { $0.categoryId == catId }.map(\.sortOrder).min() ?? 0
 
         // Optimistic insert with a placeholder id, swapped for the real one.
         let tempId = "pending-" + UUID().uuidString
         items.append(TodoItem(id: tempId, title: trimmed, status: .todo,
-                              categoryId: catId, sortOrder: maxOrder + 1))
+                              categoryId: catId, sortOrder: minOrder - 1))
         Task {
             do {
                 let realId = try await TodoistAPI.addTask(trimmed, projectId: catId)
@@ -159,8 +151,8 @@ class TodoStore: ObservableObject {
         }
     }
 
-    func deleteItems(at offsets: IndexSet) {
-        let filtered = filteredItems
+    func deleteItems(at offsets: IndexSet, in categoryId: String?) {
+        let filtered = items(in: categoryId)
         let ids = offsets.map { filtered[$0].id }
         items.removeAll { ids.contains($0.id) }
         push { for id in ids { try await TodoistAPI.deleteTask(id) } }
@@ -168,8 +160,8 @@ class TodoStore: ObservableObject {
 
     /// Local-only. Todoist ordering is not writable through this API, so a
     /// manual reorder lasts until the next refresh.
-    func moveItems(from source: IndexSet, to destination: Int) {
-        var filtered = filteredItems
+    func moveItems(from source: IndexSet, to destination: Int, in categoryId: String?) {
+        var filtered = items(in: categoryId)
         filtered.move(fromOffsets: source, toOffset: destination)
         for (index, item) in filtered.enumerated() {
             if let i = items.firstIndex(where: { $0.id == item.id }) {
@@ -208,8 +200,8 @@ class TodoStore: ObservableObject {
 
     func clearAllDoneItems() { clearDoneItems() }
 
-    func deleteAllItems() {
-        guard let catId = selectedCategoryId else { return }
+    func deleteAllItems(in categoryId: String?) {
+        guard let catId = categoryId else { return }
         let ids = items.filter { $0.categoryId == catId }.map(\.id)
         items.removeAll { $0.categoryId == catId }
         push { for id in ids { try await TodoistAPI.deleteTask(id) } }
@@ -229,7 +221,6 @@ class TodoStore: ObservableObject {
     func deleteCategory(_ id: String) {
         categories.removeAll { $0.id == id }
         items.removeAll { $0.categoryId == id }
-        if selectedCategoryId == id { selectedCategoryId = sortedCategories.first?.id }
         push { try await TodoistAPI.deleteProject(id) }
     }
 

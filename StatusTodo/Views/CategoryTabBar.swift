@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CategoryTabBar: View {
     @EnvironmentObject var store: TodoStore
+    @Binding var selectedCategoryId: String
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -10,9 +11,9 @@ struct CategoryTabBar: View {
                     TabButton(
                         label: category.name,
                         count: store.items.filter { $0.categoryId == category.id && $0.status != .done }.count,
-                        isSelected: store.selectedCategoryId == category.id
+                        isSelected: selectedCategoryId == category.id
                     ) {
-                        store.selectedCategoryId = category.id
+                        selectedCategoryId = category.id
                     }
                 }
             }
