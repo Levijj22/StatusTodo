@@ -11,6 +11,7 @@
 		42231A433FCC667FD3FFF699 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2068ADF89A1069904660FCA8 /* Color+Hex.swift */; };
 		5F86CFC04DFA4EEDE787A71B /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E92CD00271EF4FE0671AF7 /* Secrets.swift */; };
 		8321BB4D4143AFBF2D7D741D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40B62719E71FA80179FD807 /* SettingsView.swift */; };
+		872DBCEB762841CBFD53EA65 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = E6F8EC5161B9182DB2AA5F49 /* AppIcon.icns */; };
 		8886930448DDB41D54E8B53F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE6B665DAAAFF58950FAC9F /* ContentView.swift */; };
 		8CCBCA82497057EFC7AC8649 /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B8B8B7253A75FAFE35EE69 /* StatusPill.swift */; };
 		9A8230593FEE315181ECEEB0 /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4C3901AEDD966C814E6A20 /* TodoItem.swift */; };
@@ -26,6 +27,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		034EC0F3715B97518DDEF949 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		092FA9D8E24E36A8D7B1157B /* TodoistAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoistAPI.swift; sourceTree = "<group>"; };
 		2068ADF89A1069904660FCA8 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		30E92CD00271EF4FE0671AF7 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
@@ -39,6 +41,7 @@
 		D0C068D2C0316A446B66863A /* VisualEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffect.swift; sourceTree = "<group>"; };
 		D21107C65B13F7FB2D209754 /* StatusTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StatusTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC236067A881B40FD854BB7B /* TodoItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItemRow.swift; sourceTree = "<group>"; };
+		E6F8EC5161B9182DB2AA5F49 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		E7370B7625ED405EEA539CF5 /* TodoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListView.swift; sourceTree = "<group>"; };
 		FB4C3901AEDD966C814E6A20 /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
 		FEE6B665DAAAFF58950FAC9F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -81,9 +84,11 @@
 			children = (
 				71AB76A2EA88AAA2343325C9 /* Assets.xcassets */,
 				FEE6B665DAAAFF58950FAC9F /* ContentView.swift */,
+				034EC0F3715B97518DDEF949 /* Info.plist */,
 				3A2761A3610928D899DAA5CA /* StatusTodoApp.swift */,
 				0930318B11628C63A05DC883 /* Extensions */,
 				DA95961CBBC1C6CB5ECCADB8 /* Models */,
+				CBC50620F830F7BDAD90A2B0 /* Resources */,
 				9FD4AA3193928FDCD096017C /* Services */,
 				E6E6312868D345ED49E2F10C /* ViewModels */,
 				0BF1CBCB7D5229A133931762 /* Views */,
@@ -97,6 +102,14 @@
 				D21107C65B13F7FB2D209754 /* StatusTodo.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CBC50620F830F7BDAD90A2B0 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E6F8EC5161B9182DB2AA5F49 /* AppIcon.icns */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		DA95961CBBC1C6CB5ECCADB8 /* Models */ = {
@@ -181,6 +194,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				872DBCEB762841CBFD53EA65 /* AppIcon.icns in Resources */,
 				C94A83B289E705274C92CF52 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -284,11 +298,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSHighResolutionCapable = YES;
-				INFOPLIST_KEY_NSHumanReadableDescription = "StatusTodo Task Manager";
-				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = StatusTodo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -365,11 +376,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSHighResolutionCapable = YES;
-				INFOPLIST_KEY_NSHumanReadableDescription = "StatusTodo Task Manager";
-				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = StatusTodo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
