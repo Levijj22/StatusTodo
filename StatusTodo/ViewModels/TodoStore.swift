@@ -34,6 +34,11 @@ class TodoStore: ObservableObject {
     private var pendingDone: [String: (item: TodoItem, since: Date)] = [:]
     private let pendingDoneGrace: TimeInterval = 300
 
+    /// Tasks completed here, awaiting Todoist. A refresh can land before the
+    /// close is processed, so the open feed still returns them - without this
+    /// they flick straight back to not-done.
+    private var justCompleted: [String: Date] = [:]
+
     /// Completed tasks are shown greyed until the user cleans up; this marks
     /// the cut-off. Defaults to the start of today on first run.
     private var doneSince: Date {
@@ -81,8 +86,19 @@ class TodoStore: ObservableObject {
             var done: [TodoItem] = []
             do { done = try await TodoistAPI.fetchCompleted(since: doneSince) }
             catch { NSLog("completed fetch failed: \(error)") }
-            let openIds = Set(its.map(\.id))
-            let doneIds = Set(done.map(\.id))
+            var openTasks = its
+            let doneIdsRaw = Set(done.map { $0.id })
+            let now0 = Date()
+
+            // Drop anything we just completed but that the open feed still
+            // returns, and forget the marker once a feed agrees with us.
+            justCompleted = justCompleted.filter {
+                !doneIdsRaw.contains($0.key) && now0.timeIntervalSince($0.value) < pendingDoneGrace
+            }
+            openTasks.removeAll { justCompleted[$0.id] != nil }
+
+            let openIds = Set(openTasks.map { $0.id })
+            let doneIds = doneIdsRaw
 
             // Anything previously open that neither feed claims: hold it.
             for prev in items where prev.status != .done
@@ -103,7 +119,7 @@ class TodoStore: ObservableObject {
             }
 
             categories = cats
-            items = its + done + pendingDone.values.map(\.item)
+            items = openTasks + done + pendingDone.values.map { $0.item }
             syncError = nil
 
         } catch {
@@ -223,6 +239,12 @@ class TodoStore: ObservableObject {
         // too, so removing them here just made them flicker out.
         if let i = items.firstIndex(where: { $0.id == id }) {
             items[i].status = status
+        }
+        if status == .done {
+            justCompleted[id] = Date()
+        } else {
+            justCompleted.removeValue(forKey: id)
+            pendingDone.removeValue(forKey: id)
         }
         push { try await TodoistAPI.setStatus(id, status) }
     }

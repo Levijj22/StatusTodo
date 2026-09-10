@@ -8,7 +8,7 @@ Todoist holds the data; StatusTodo is a native client onto it. That means the to
 
 ## Features
 
-- **Status pills** — Todo (grey), In Progress (orange), On Hold (red), Done (green)
+- **Tick box** — not done (grey) or done (green); one click completes, another reopens
 - **Category tabs** — one per Todoist project
 - **Backed by Todoist** — add, rename, re-status and delete all sync to your account
 - **Live** — refreshes every 60 seconds and whenever the window comes to the front, so changes made on your phone show up here
@@ -18,16 +18,12 @@ Todoist holds the data; StatusTodo is a native client onto it. That means the to
 
 ## How status maps to Todoist
 
-Todoist has no status field, so status is stored in the task's priority. Note the API's scale is inverted versus its CSV importer: `1` is normal, `4` is urgent.
+Done closes the task in Todoist; un-ticking reopens it. Priority is left
+untouched and no longer encodes anything.
 
-| StatusTodo | Todoist priority |
-|---|---|
-| Todo | 1 |
-| On Hold | 2 |
-| In Progress | 3 (also reads 4/P1) |
-| Done | task is completed |
-
-Marking an item **Done** completes it in Todoist, so it leaves the list immediately — Todoist doesn't return completed tasks.
+Completing something removes it from Todoist's open list before the completed
+feed indexes it, so the app holds a just-completed task locally until a feed
+agrees - otherwise it would flick back to not-done, or vanish for a cycle.
 
 ## Requirements
 

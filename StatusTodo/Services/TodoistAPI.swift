@@ -16,26 +16,9 @@ enum TodoistAPI {
         }
     }
 
-    /// Status is stored in Todoist's priority field. The API scale is inverted
-    /// versus the CSV importer: 1 = normal (p4), 4 = urgent (p1).
-    static func priority(for status: TodoStatus) -> Int {
-        switch status {
-        case .inProgress: return 3
-        case .onHold:     return 2
-        default:          return 1
-        }
-    }
-
-    /// P1 (API 4) set on the phone also reads as In Progress - nothing else
-    /// maps to it, and an urgent task is in progress by any reading.
-    /// Writing In Progress still uses 3, so a P1 stays P1 until restatused.
-    static func status(fromPriority p: Int) -> TodoStatus {
-        switch p {
-        case 4, 3: return .inProgress
-        case 2:    return .onHold
-        default:   return .todo
-        }
-    }
+    /// Only open/closed now, so priority is left alone entirely - it stays
+    /// whatever it is in Todoist and no longer encodes status.
+    static func status(fromPriority p: Int) -> TodoStatus { .todo }
 
     private static func send(_ method: String, _ path: String, body: [String: Any]? = nil) async throws -> Data {
         // Not appendingPathComponent - it percent-encodes "?" and every call 404s.
@@ -184,7 +167,8 @@ enum TodoistAPI {
         if status == .done {
             _ = try await send("POST", "tasks/\(id)/close")
         } else {
-            _ = try await send("POST", "tasks/\(id)", body: ["priority": priority(for: status)])
+            // Un-ticking genuinely reopens the task, rather than nudging a field.
+            _ = try await send("POST", "tasks/\(id)/reopen")
         }
     }
 
